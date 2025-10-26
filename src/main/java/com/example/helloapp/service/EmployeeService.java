@@ -1,8 +1,6 @@
 package com.example.helloapp.service;
 
-import com.example.helloapp.entity.Employee;
 import com.example.helloapp.repository.EmployeeRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
