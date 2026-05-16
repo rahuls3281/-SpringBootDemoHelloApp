@@ -1,0 +1,21 @@
+{
+  "family": "springboot-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::676259471979:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "springboot-app",
+      "image": "<IMAGE>",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ]
+    }
+  ]
+}
