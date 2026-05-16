@@ -1,4 +1,4 @@
-name: Deploy Spring boot Application
+name: Deploy Spring Boot Application
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
           java-version: '25'
       - name: Maven Build
         run: mvn clean install -DskipTests
+
   test:
     needs: init
     runs-on: ubuntu-latest
@@ -30,29 +31,37 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - name: run test cases
+      - name: Run Test Cases
         run: mvn clean test
+
   build:
     needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
-      - name: Configuration AWS credentials
+
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: "eu-north-1"
-      - name: login in ECR
+
+      - name: Login to ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build Docker Image
-        run: docker build -t ${{ secrets.ECR_REPO_NAME }} .
+        run: docker build -t ${{ secrets.ECR_REPO_NAME }}:${{ github.sha }} .
+
       - name: Tag Docker Image
-        run: docker tag ${{ secrets.ECR_REPO_NAME }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:latest
+        run: docker tag ${{ secrets.ECR_REPO_NAME }}:${{ github.sha }} \
+          ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:${{ github.sha }}
+
       - name: Push Docker Image to ECR
-        run: docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:latest
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:${{ github.sha }}
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -63,5 +72,16 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: "eu-north-1"
+
+      - name: Update ECS Task Definition
+        run: |
+          sed -i "s|<IMAGE>|${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:${{ github.sha }}|g" ecs-task-def.json
+          aws ecs register-task-definition \
+            --cli-input-json file://ecs-task-def.json
+
       - name: Deploy to ECS
-        run: aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER }} --service ${{ secrets.ECS_SERVICE }} --force-new-deployment
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --service ${{ secrets.ECS_SERVICE }} \
+            --force-new-deployment
