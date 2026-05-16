@@ -56,8 +56,7 @@ jobs:
         run: docker build -t ${{ secrets.ECR_REPO_NAME }}:${{ github.sha }} .
 
       - name: Tag Docker Image
-        run: docker tag ${{ secrets.ECR_REPO_NAME }}:${{ github.sha }} \
-          ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:${{ github.sha }}
+        run: docker tag ${{ secrets.ECR_REPO_NAME }}:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:${{ github.sha }}
 
       - name: Push Docker Image to ECR
         run: docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:${{ github.sha }}
