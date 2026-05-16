@@ -41,15 +41,15 @@ jobs:
       - name: Configuration AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: AKIAZ25BUUJV56I3M5OM
-          aws-secret-access-key: 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
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: "eu-north-1"
       - name: login in ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
       - name: Build Docker Image
-        run: docker build -t testing/spring-app .
+        run: docker build -t ${{ secrets.ECR_REPO_NAME }} .
       - name: Tag Docker Image
-        run: docker tag testing/spring-app:latest ${{ steps.login-ecr.outputs.registry }}/testing/spring-app:latest
+        run: docker tag ${{ secrets.ECR_REPO_NAME }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:latest
       - name: Push Docker Image to ECR
-        run: docker push ${{ steps.login-ecr.outputs.registry }}/testing/spring-app:latest
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:latest
