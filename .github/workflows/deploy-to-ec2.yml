@@ -1,51 +1,55 @@
-name: Build and Deploy to Ubuntu EC2
+name: Deploy Spring boot Application
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - develop
+      - main
 
 jobs:
-  build-deploy:
+  init:
     runs-on: ubuntu-latest
-
     steps:
-      # 1️⃣ Checkout code
-      - name: Checkout source
+      - name: Checkout Code
         uses: actions/checkout@v4
-
-      # 2️⃣ Setup JDK 17
-      - name: Setup JDK
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Grant execute permission for mvnw
-        run: chmod +x mvnw
-
-      # 3️⃣ Build Spring Boot JAR
-      - name: Build with Maven
-        run: ./mvnw clean package -DskipTests
-
-      # 4️⃣ Copy JAR to EC2 using SCP
-      - name: Copy JAR to EC2
-        uses: appleboy/scp-action@v0.1.5
+          distribution: temurin
+          java-version: '25'
+      - name: Maven Build
+        run: mvn clean install -DskipTests
+  test:
+    needs: init
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "target/*.jar"
-          target: "/home/ubuntu/springbootapp/"
-
-      # 5️⃣ SSH into EC2 and restart app
-      - name: Restart app on EC2
-        uses: appleboy/ssh-action@v0.1.7
+          distribution: temurin
+          java-version: '25'
+      - name: run test cases
+        run: mvn clean test
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+      - name: Configuration AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/springbootapp
-            pkill -f 'java -jar' || true
-            nohup java -jar target/*.jar > app.log 2>&1 &
-            echo "✅ App restarted successfully on EC2"
+          aws-access-key-id: AKIAZ25BUUJV56I3M5OM
+          aws-secret-access-key: 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
+          aws-region: "eu-north-1"
+      - name: login in ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build Docker Image
+        run: docker build -t testing/spring-app .
+      - name: Tag Docker Image
+        run: docker tag testing/spring-app:latest ${{ steps.login-ecr.outputs.registry }}/testing/spring-app:latest
+      - name: Push Docker Image to ECR
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/testing/spring-app:latest
