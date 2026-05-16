@@ -1,0 +1,4 @@
+com\example\helloapp\controller\HelloController.class
+com\example\helloapp\model\User.class
+com\example\helloapp\HelloAppApplication.class
+com\example\helloapp\service\HelloService.class
