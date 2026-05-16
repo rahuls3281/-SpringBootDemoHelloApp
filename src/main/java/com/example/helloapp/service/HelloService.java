@@ -8,4 +8,8 @@ public class HelloService {
     public User getMessage(){
         return new User(101,"Rahul","Hello");
     }
+
+    public User getMessageTesting(){
+        return new User(102,"Baba","Hello");
+    }
 }

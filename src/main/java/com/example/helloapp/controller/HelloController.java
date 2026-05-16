@@ -19,4 +19,9 @@ public class HelloController {
     public User sayHello() {
         return helloService.getMessage();
     }
+
+    @GetMapping("/testing")
+    public User sayTesting() {
+        return helloService.getMessageTesting();
+    }
 }
